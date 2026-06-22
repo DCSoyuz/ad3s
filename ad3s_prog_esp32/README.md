@@ -202,7 +202,7 @@ idf.py menuconfig
 | `GPIO_MOSI`                  | SPI MOSI (ESP → чип)         | вход данных чипа (SDI)             |
 | `GPIO_MISO`                  | SPI MISO (чип → ESP)         | выход данных чипа (SDO)            |
 | `GPIO_SCLK`                  | SPI тактовый                 | SCLK чипа                          |
-| `GPIO_CS`                    | SPI Chip Select              | CS (nSS) чипа                      |
+| `GPIO_CS`                    | SPI Chip Select              | SSTR чипа (строб кадра/CS)         |
 | `GPIO_NRESET`                | сброс                        | nRESET чипа                        |
 | `STNDBY_PIN`                 | standby                      | STANDBY                            |
 | `VPP9V_PIN`                  | управление VPP               | вход управления VPP                |
@@ -302,5 +302,5 @@ call %IDF_PATH%\export.bat
 - **Спецификация микросхемы 5400ТР065А-022**:
   <https://support.dcsoyuz.ru/docs/5400TP065A-022/ad3s-main>
 - **Описание протокола USB-пакетов** со стороны Java-приложения — в файле
-  `PROG_BOTP_SPI_WRITE.md` репозитория `workstation4ad3s-flatlaf`. Эти
-  репозитории распространяются отдельно от данной прошивки.
+  [`workstation4ad3s/PROG_BOTP_SPI_WRITE.md`](../workstation4ad3s/PROG_BOTP_SPI_WRITE.md)
+  этого репозитория.
