@@ -1,0 +1,508 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>ru.dcsoyuz</groupId>
+    <artifactId>ad3s</artifactId>
+    <version>3.0.0</version>
+
+
+    <name>workstation4ad3s</name>
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <javafx.version>17.0.13</javafx.version>
+        <!--
+            Source root holding the register enums + FactoryGate.
+            Default (public) build uses the stripped set under src/registers/java.
+            The factory profile (-Pfactory) overrides this to src/factory/java,
+            whose full versions (with factory registers) are git-ignored.
+        -->
+        <registers.src>src/registers/java</registers.src>
+    </properties>
+    <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>true</filtering>
+                <includes>
+                    <include>**/*.properties</include>
+                </includes>
+            </resource>
+            <resource>
+                <directory>src/main/resources</directory>
+                <filtering>false</filtering>
+                <excludes>
+                    <exclude>**/*.properties</exclude>
+                </excludes>
+            </resource>
+        </resources>
+        <sourceDirectory>src/main/java</sourceDirectory>
+        <testSourceDirectory>src/test/java</testSourceDirectory>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.11.0</version>
+                <configuration>
+                    <source>17</source>
+                    <target>17</target>
+                    <encoding>UTF-8</encoding>
+                </configuration>
+            </plugin>
+            <!--
+                Adds the active register source root (${registers.src}).
+                Default build: src/registers/java (stripped, public).
+                -Pfactory: src/factory/java (full, git-ignored).
+            -->
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.4.0</version>
+                <executions>
+                    <execution>
+                        <id>add-register-sources</id>
+                        <phase>generate-sources</phase>
+                        <goals>
+                            <goal>add-source</goal>
+                        </goals>
+                        <configuration>
+                            <sources>
+                                <source>${project.basedir}/${registers.src}</source>
+                            </sources>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.openjfx</groupId>
+                <artifactId>javafx-maven-plugin</artifactId>
+                <version>0.0.8</version>
+                <configuration>
+                    <mainClass>ru.dcsoyuz.ad3s.MainModern</mainClass>
+                </configuration>
+            </plugin>
+            <plugin>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>ru.dcsoyuz.ad3s.MainModern</mainClass>
+                        </manifest>
+                    </archive>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>make-assembly</id> <!-- this is used for inheritance merges -->
+                        <phase>package</phase> <!-- bind to the packaging phase -->
+                        <goals>
+                            <goal>single</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <version>2.5</version>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.basedir}/../lib/</outputDirectory>
+                            <overWriteReleases>false</overWriteReleases>
+                            <overWriteSnapshots>false</overWriteSnapshots>
+                            <overWriteIfNewer>true</overWriteIfNewer>
+                            <useSubDirectoryPerScope>true</useSubDirectoryPerScope>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>copy-sources</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.basedir}/../lib/source</outputDirectory>
+                            <overWriteReleases>false</overWriteReleases>
+                            <overWriteSnapshots>false</overWriteSnapshots>
+                            <overWriteIfNewer>true</overWriteIfNewer>
+                            <useSubDirectoryPerScope>true</useSubDirectoryPerScope>
+                            <classifier>sources</classifier>
+                        </configuration>
+                    </execution>
+
+                </executions>
+
+            </plugin>
+
+            <!-- Build number increment + distribution packaging -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <version>3.1.0</version>
+                <executions>
+                    <execution>
+                        <id>increment-build-number</id>
+                        <phase>validate</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <property name="bn.file" value="${project.basedir}/build.number"/>
+                                <propertyfile file="${bn.file}">
+                                    <entry key="buildNumber" type="int" value="1" operation="+" default="0"/>
+                                </propertyfile>
+                                <loadproperties srcFile="${bn.file}"/>
+                                <echo message="Build number: ${buildNumber}"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>write-version-properties</id>
+                        <phase>prepare-package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <loadproperties srcFile="${project.basedir}/build.number"/>
+                                <echo file="${project.basedir}/target/classes/version.properties" message="app.version=3.0.${buildNumber}"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                    <execution>
+                        <id>create-distribution</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <target>
+                                <loadproperties srcFile="${project.basedir}/build.number"/>
+                                <property name="bn" value="${buildNumber}"/>
+                                <property name="dist.dir" value="${project.basedir}/dist"/>
+                                <property name="assembly.jar" value="ad3s-${project.version}-jar-with-dependencies.jar"/>
+                                <property name="jar.name" value="Workstation4ad3s-3.0.${bn}.jar"/>
+
+                                <echo>=== Cleaning dist directory ===</echo>
+                                <delete dir="${dist.dir}" quiet="true" failonerror="false"/>
+                                <echo>=== Creating dist directory ===</echo>
+                                <mkdir dir="${dist.dir}"/>
+
+                                <echo>=== Copying JAR ===</echo>
+                                <copy file="${project.basedir}/target/${assembly.jar}" tofile="${dist.dir}/${jar.name}"/>
+
+                                <copy file="${project.basedir}/README.md" todir="${dist.dir}"/>
+
+                                <echo>=== Copying risc_programs ===</echo>
+                                <mkdir dir="${dist.dir}/risc_programs/dma_asm"/>
+                                <copy todir="${dist.dir}/risc_programs/dma_asm">
+                                    <fileset dir="${project.basedir}/src/main/resources/dma_asm"/>
+                                </copy>
+                                <mkdir dir="${dist.dir}/risc_programs/handtap_asm"/>
+                                <copy todir="${dist.dir}/risc_programs/handtap_asm">
+                                    <fileset dir="${project.basedir}/src/main/resources/handtap_asm"/>
+                                </copy>
+                                <mkdir dir="${dist.dir}/risc_programs/user_asm"/>
+                                <copy todir="${dist.dir}/risc_programs/user_asm">
+                                    <fileset dir="${project.basedir}/src/main/resources/user_asm"/>
+                                </copy>
+                                <mkdir dir="${dist.dir}/risc_programs/detector_asm"/>
+                                <copy todir="${dist.dir}/risc_programs/detector_asm">
+                                    <fileset dir="${project.basedir}/src/main/resources/detector_asm"/>
+                                </copy>
+
+                                <echo>=== Copying matlab ===</echo>
+                                <mkdir dir="${dist.dir}/matlab"/>
+                                <copy todir="${dist.dir}/matlab">
+                                    <fileset dir="${project.basedir}/src/main/resources/matlab"/>
+                                </copy>
+
+                                <mkdir dir="${dist.dir}/user_generated_files"/>
+
+                                <echo file="${dist.dir}/Workstation4ad3s-3.0.${bn}.bat">@echo off
+setlocal
+set "JAR=%~dp0${jar.name}"
+echo Starting Workstation4ad3s...
+echo Please wait up to 1 minute for the application to open.
+echo.
+REM 1) Bundled JRE
+if exist "%~dp0jre\bin\java.exe" (
+    "%~dp0jre\bin\java.exe" -jar "%JAR%"
+    goto :eof
+)
+REM 2) JAVA_HOME
+if defined JAVA_HOME if exist "%JAVA_HOME%\bin\java.exe" (
+    "%JAVA_HOME%\bin\java.exe" -jar "%JAR%"
+    goto :eof
+)
+REM 3) PATH
+where java >nul 2&gt;&amp;1
+if not errorlevel 1 (
+    java -jar "%JAR%"
+    goto :eof
+)
+REM 4) Find java.exe anywhere under Program Files
+for /f "delims=" %%J in ('dir /b /s "C:\Program Files\java.exe" 2^>nul') do (
+    "%%J" -jar "%JAR%"
+    goto :eof
+)
+echo ============================================================
+echo  Java not found.
+echo  Put JRE into jre\ folder next to this script.
+echo  See README.md for details.
+echo ============================================================
+pause
+exit /b 1
+</echo>
+
+                                <echo file="${dist.dir}/Workstation4ad3s-3.0.${bn}.sh">#!/bin/bash
+DIR="$(cd "$(dirname "$0")" &amp;&amp; pwd)"
+JAR="$DIR/${jar.name}"
+echo "Starting Workstation4ad3s..."
+echo "Please wait up to 1 minute for the application to open."
+echo ""
+# 1) Bundled JRE
+[ -x "$DIR/jre/bin/java" ] &amp;&amp; exec "$DIR/jre/bin/java" -jar "$JAR"
+# 2) JAVA_HOME
+[ -n "$JAVA_HOME" ] &amp;&amp; [ -x "$JAVA_HOME/bin/java" ] &amp;&amp; exec "$JAVA_HOME/bin/java" -jar "$JAR"
+# 3) PATH
+command -v java &gt;/dev/null 2&gt;&amp;1 &amp;&amp; exec java -jar "$JAR"
+echo "============================================================"
+echo " Java not found."
+echo " Either: put JRE into jre/ folder next to this script"
+echo " Or:     set JAVA_HOME environment variable to point to JDK/JRE"
+echo " See README.md for details."
+echo "============================================================"
+exit 1
+</echo>
+
+                                <chmod file="${dist.dir}/Workstation4ad3s-3.0.${bn}.sh" perm="755"/>
+                                <chmod file="${dist.dir}/ad3s_factory.sh" perm="755"/>
+
+                                <echo>=== Creating ZIP archive ===</echo>
+                                <delete>
+                                    <fileset dir="${project.basedir}" includes="Workstation4ad3s-*.zip"/>
+                                </delete>
+                                <zip destfile="${project.basedir}/Workstation4ad3s-3.0.${bn}.zip" basedir="${dist.dir}"/>
+                            </target>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+
+        </plugins>
+    </build>
+
+    <dependencies>
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>4.12</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hamcrest</groupId>
+            <artifactId>hamcrest-core</artifactId>
+            <version>1.3</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.commons</groupId>
+            <artifactId>commons-lang3</artifactId>
+            <version>3.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi</artifactId>
+            <version>3.14</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml-schemas</artifactId>
+            <version>4.1.2</version>
+            <scope>compile</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml-lite</artifactId>
+            <version>5.2.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>org.apache.poi</groupId>
+            <artifactId>poi-ooxml</artifactId>
+            <version>3.14</version>
+        </dependency>
+
+
+
+        <dependency>
+            <groupId>de.erichseifert.gral</groupId>
+            <artifactId>gral-core</artifactId>
+            <version>0.11</version>
+        </dependency>
+
+<!--        <dependency>-->
+<!--            <groupId>org.jogamp.glg2d</groupId>-->
+<!--            <artifactId>glg2d</artifactId>-->
+<!--            <version>0.3-SNAPSHOT</version>-->
+<!--        </dependency>-->
+
+        <dependency>
+            <groupId>net.java.dev.jna</groupId>
+            <artifactId>jna</artifactId>
+            <version>5.2.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.knowm.xchart</groupId>
+            <artifactId>xchart</artifactId>
+            <version>3.8.5</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.scream3r/jssc -->
+        <dependency>
+            <groupId>io.github.java-native</groupId>
+            <artifactId>jssc</artifactId>
+            <version>2.10.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.hp.gagawa</groupId>
+            <artifactId>gagawa</artifactId>
+            <version>1.0.1</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/org.jsoup/jsoup -->
+        <dependency>
+            <groupId>org.jsoup</groupId>
+            <artifactId>jsoup</artifactId>
+            <version>1.17.2</version>
+        </dependency>
+
+        <dependency>
+            <groupId>commons-io</groupId>
+            <artifactId>commons-io</artifactId>
+            <version>2.6</version>
+        </dependency>
+
+
+        <!-- https://mvnrepository.com/artifact/jfree/jfreechart -->
+
+        <!-- FlatLaf - Modern Look and Feel -->
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf</artifactId>
+            <version>3.5.1</version>
+        </dependency>
+        <!-- FlatLaf Extras (required by modern-docking-ui) -->
+        <dependency>
+            <groupId>com.formdev</groupId>
+            <artifactId>flatlaf-extras</artifactId>
+            <version>3.5.1</version>
+        </dependency>
+
+        <!-- Modern Docking Framework -->
+        <dependency>
+            <groupId>io.github.andrewauclair</groupId>
+            <artifactId>modern-docking-api</artifactId>
+            <version>1.4.8</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.andrewauclair</groupId>
+            <artifactId>modern-docking-single-app</artifactId>
+            <version>1.4.8</version>
+        </dependency>
+        <dependency>
+            <groupId>io.github.andrewauclair</groupId>
+            <artifactId>modern-docking-ui</artifactId>
+            <version>1.4.8</version>
+        </dependency>
+
+        <!-- SLF4J Simple implementation -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-simple</artifactId>
+            <version>2.0.9</version>
+        </dependency>
+
+        <!-- JavaFX - WebView for HTML rendering -->
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-base</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-graphics</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-controls</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-web</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-swing</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-media</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+
+    </dependencies>
+
+
+
+    <repositories>
+<!--        <repository>-->
+<!--            <id>glg2d-repo</id>-->
+<!--            <url>http://brandonborkholder.github.com/glg2d/maven2/</url>-->
+<!--        </repository>-->
+    </repositories>
+
+    <!--
+        Factory build profile.
+
+        The default (public) build compiles src/main/java + src/registers/java,
+        where the register enums (Regs / RegField / AllRegAddr) are stripped of
+        factory registers and FactoryGate is an inert stub. The public artifact
+        therefore contains no factory register definitions at all.
+
+        Activating -Pfactory overrides ${registers.src} to src/factory/java, so the
+        build-helper compiles the full register enums + the real FactoryGate instead.
+        Build with:
+            mvn -Pfactory package
+        src/factory is git-ignored and never published.
+    -->
+    <profiles>
+        <profile>
+            <id>factory</id>
+            <properties>
+                <registers.src>src/factory/java</registers.src>
+            </properties>
+        </profile>
+    </profiles>
+
+
+
+</project>

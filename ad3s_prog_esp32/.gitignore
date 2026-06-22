@@ -1,0 +1,24 @@
+# ESP-IDF build output and downloaded components
+build/
+managed_components/
+
+# SDK config backups and target-specific variants (sdkconfig itself is tracked)
+sdkconfig.old
+sdkconfig.esp*
+sdkconfig.fuzz*
+
+# Python (pytest-embedded)
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE / editor — keep c_cpp_properties.json and launch.json (portable),
+# ignore machine-local settings (absolute paths, COM-port, clangd path)
+.vscode/settings.json
+.idea/
+.cache/
+compile_commands.json
+
+# OS
+.DS_Store
+Thumbs.db

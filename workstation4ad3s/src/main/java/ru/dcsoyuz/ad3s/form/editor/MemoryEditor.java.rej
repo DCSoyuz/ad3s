@@ -1,0 +1,10 @@
+diff a/java/workstation4ad3s/src/main/java/ru/dcsoyuz/ad3s/form/editor/MemoryEditor.java b/java/workstation4ad3s/src/main/java/ru/dcsoyuz/ad3s/form/editor/MemoryEditor.java	(rejected hunks)
+@@ -142,7 +142,7 @@
+         Action performWriteIc = new AbstractAction() {
+             public void actionPerformed(ActionEvent e) {
+                 Model.getMemoryModel().setReqAddress(0);
+-                Model.getMemoryModel().setReqValues(face.getTableValuesForWriteToIc());
++
+                 Model.getMemoryModel().writeValues();
+             }
+         };
