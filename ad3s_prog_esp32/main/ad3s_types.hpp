@@ -75,7 +75,14 @@ namespace idf {
   // 33 22 1
   static constexpr int LED_PIN              = 2;
 
-#if defined(CONFIG_INDUCTIVE3VER)
+  // ============================================================
+  // CUSTOM USER BOARD (menuconfig: «Custom User Board»).
+  // Любой модуль ESP32-S3, подключённый к микросхеме 5400ТР065А-022.
+  // Значения ниже — рабочая разводка по умолчанию. ЗАМЕНИТЕ их на пины
+  // своей обвязки, если разводка отличается (см. README.md, раздел
+  // «Настройка платы и пинов»).
+  // ============================================================
+#if defined(CONFIG_CUSTOM_USER_BOARD)
   static constexpr int STNDBY_PIN           = 9;
   static constexpr int VPP9V_PIN            = 3;
   static constexpr int GPIO_MOSI            = 11;
@@ -91,25 +98,12 @@ namespace idf {
   static constexpr int GPIO_ENC1_B          = 36;
   static constexpr int GPIO_ENC2_0          = 21;
   static constexpr int GPIO_ENC2_A          = 45;
-  static constexpr int GPIO_ENC2_B          = 47; 
-#elif defined(CONFIG_INDUCTOSYN_VER2)
-  static constexpr int STNDBY_PIN           = 41;
-  static constexpr int VPP9V_PIN            = 35;
-  static constexpr int GPIO_MOSI            = 12;
-  static constexpr int GPIO_MISO            = 13;
-  static constexpr int GPIO_SCLK            = 11;
-  static constexpr int GPIO_CS              = 14;
-  static constexpr int GPIO_SAMPLE          = 39;
-  static constexpr int GPIO_VC              = 40;
-  static constexpr int GPIO_NSEN            = 42;
-  static constexpr int GPIO_NRESET          = 8;
-  static constexpr int GPIO_ENC1_0          = 14;
-  static constexpr int GPIO_ENC1_A          = 47;
-  static constexpr int GPIO_ENC1_B          = 21;
-  static constexpr int GPIO_ENC2_0          = 4;
-  static constexpr int GPIO_ENC2_A          = 5;
-  static constexpr int GPIO_ENC2_B          = 6;
-#elif defined(CONFIG_USERDEMO_BOARD)
+  static constexpr int GPIO_ENC2_B          = 47;
+  // ============================================================
+  // DEV BOARD FOR 065A-022 (menuconfig: «Dev board for 065A-022»).
+  // Заводская отладочная плата для микросхемы 5400ТР065А-022 (по умолчанию).
+  // ============================================================
+#elif defined(CONFIG_DEV_BOARD_065A022)
   static constexpr int STNDBY_PIN           = 9;
   static constexpr int VPP9V_PIN            = 3;
   static constexpr int GPIO_MOSI            = 11;
@@ -126,31 +120,8 @@ namespace idf {
   static constexpr int GPIO_ENC2_0          = 39;
   static constexpr int GPIO_ENC2_A          = 40;
   static constexpr int GPIO_ENC2_B          = 41;
-#elif defined(CONFIG_USER_ANY_BOARD)
-  // ============================================================
-  // ПОЛЬЗОВАТЕЛЬСКАЯ ПЛАТА — любой ESP32-S3 (копеечный devkit).
-  // ЗАМЕНИТЕ значения на пины своей обвязки к микросхеме 5400ТР065А-022!
-  // Подробности и таблицу сигналов см. в README.md (раздел «Настройка платы и пинов»).
-  // Не используйте пины flash/PSRAM (обычно 26..32) и strapping (0, 3, 45, 46).
-  // ============================================================
-  static constexpr int STNDBY_PIN           = 9;
-  static constexpr int VPP9V_PIN            = 4;
-  static constexpr int GPIO_MOSI            = 11;   // SPI MOSI  -> SDI чипа
-  static constexpr int GPIO_MISO            = 13;   // SPI MISO <- SDO чипа
-  static constexpr int GPIO_SCLK            = 12;   // SPI SCLK
-  static constexpr int GPIO_CS              = 10;   // SPI Chip Select
-  static constexpr int GPIO_SAMPLE          = 6;
-  static constexpr int GPIO_VC              = 7;
-  static constexpr int GPIO_NSEN            = 8;
-  static constexpr int GPIO_NRESET          = 5;    // сброс чипа
-  // Энкодеры опциональны (нужны только для команд ENC_ON / READ_ENCODERS):
-  static constexpr int GPIO_ENC1_0          = 38;
-  static constexpr int GPIO_ENC1_A          = 39;
-  static constexpr int GPIO_ENC1_B          = 40;
-  static constexpr int GPIO_ENC2_0          = 41;
-  static constexpr int GPIO_ENC2_A          = 42;
-  static constexpr int GPIO_ENC2_B          = 47;
 #else
+  // Fallback (ни один вариант платы не выбран) — разводка Inductosyn-ревизии.
   static constexpr int STNDBY_PIN           = 41;
   static constexpr int VPP9V_PIN            = 35;
   static constexpr int GPIO_MOSI            = 11;
@@ -168,9 +139,51 @@ namespace idf {
   static constexpr int GPIO_ENC2_A          = 5;
   static constexpr int GPIO_ENC2_B          = 6;
 #endif
+  // ================================================================
+  // Скрытые / устаревшие варианты плат (убраны из menuconfig, оставлены
+  // для истории). Чтобы вернуть вариант в menuconfig — раскомментируйте
+  // блок здесь и соответствующий «config» в main/Kconfig.projbuild.
+  // ----------------------------------------------------------------
+  /* #hidden-boards
+  #elif defined(CONFIG_INDUCTOSYN_VER2)
+  static constexpr int STNDBY_PIN           = 41;
+  static constexpr int VPP9V_PIN            = 35;
+  static constexpr int GPIO_MOSI            = 12;
+  static constexpr int GPIO_MISO            = 13;
+  static constexpr int GPIO_SCLK            = 11;
+  static constexpr int GPIO_CS              = 14;
+  static constexpr int GPIO_SAMPLE          = 39;
+  static constexpr int GPIO_VC              = 40;
+  static constexpr int GPIO_NSEN            = 42;
+  static constexpr int GPIO_NRESET          = 8;
+  static constexpr int GPIO_ENC1_0          = 14;
+  static constexpr int GPIO_ENC1_A          = 47;
+  static constexpr int GPIO_ENC1_B          = 21;
+  static constexpr int GPIO_ENC2_0          = 4;
+  static constexpr int GPIO_ENC2_A          = 5;
+  static constexpr int GPIO_ENC2_B          = 6;
+  #elif defined(CONFIG_USER_ANY_BOARD)
+  static constexpr int STNDBY_PIN           = 9;
+  static constexpr int VPP9V_PIN            = 4;
+  static constexpr int GPIO_MOSI            = 11;   // SPI MOSI  -> SDI чипа
+  static constexpr int GPIO_MISO            = 13;   // SPI MISO <- SDO чипа
+  static constexpr int GPIO_SCLK            = 12;   // SPI SCLK
+  static constexpr int GPIO_CS              = 10;   // SPI Chip Select
+  static constexpr int GPIO_SAMPLE          = 6;
+  static constexpr int GPIO_VC              = 7;
+  static constexpr int GPIO_NSEN            = 8;
+  static constexpr int GPIO_NRESET          = 5;    // сброс чипа
+  static constexpr int GPIO_ENC1_0          = 38;
+  static constexpr int GPIO_ENC1_A          = 39;
+  static constexpr int GPIO_ENC1_B          = 40;
+  static constexpr int GPIO_ENC2_0          = 41;
+  static constexpr int GPIO_ENC2_A          = 42;
+  static constexpr int GPIO_ENC2_B          = 47;
+  #hidden-boards */
+
   static const char *TAG = "ad3s_prog_esp32";
 
-#if defined(CONFIG_INDUCTIVE3VER) || defined(CONFIG_USERDEMO_BOARD)
+#if defined(CONFIG_CUSTOM_USER_BOARD) || defined(CONFIG_DEV_BOARD_065A022)
   static inline int vpp9v_level(int level) { return level ^ 1; }
 #else
   static inline int vpp9v_level(int level) { return level; }

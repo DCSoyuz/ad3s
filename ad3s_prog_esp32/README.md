@@ -101,7 +101,8 @@ ADDRESS L/H, NUMW L/H, данные, CHECKSUM.
 
 ```cmd
 idf.py set-target esp32s3
-idf.py menuconfig     ;; выбрать вариант платы (User Any Board — для своей)
+idf.py menuconfig     ;; по умолчанию «Dev board for 065A-022»;
+                      ;; для своего модуля выберите «Custom User Board»
 idf.py build
 idf.py -p COM3 flash monitor
 ```
@@ -182,13 +183,12 @@ idf.py set-target esp32s3
 idf.py menuconfig
 ```
 
-В меню **AD3S Board Configuration → Version board** выберите вариант:
+В меню **AD3S Board Configuration → Version board** выберите вариант платы:
 
-- **SKVT Verify** (по умолчанию),
-- **Inductosyn ver2**,
-- **Inductive3ver**,
-- **User Demo**,
-- **User Any Board** — любая сторонняя плата; пины задаются вручную (см. ниже).
+- **Dev board for 065A-022** — заводская отладочная плата с микросхемой
+  5400ТР065А-022 (выбрана по умолчанию);
+- **Custom User Board** — любой другой модуль ESP32-S3, подключённый к
+  микросхеме проводами; пины задаются вручную (см. ниже).
 
 В VS Code вместо `idf.py menuconfig` — `F1` → **ESP-IDF: SDK Configuration Editor**.
 
@@ -200,10 +200,11 @@ idf.py menuconfig
   (безопасный вариант: иначе инициализация ленты на неверном пине может вызвать
   `panic` и постоянную перезагрузку).
 
-**Своя плата (User Any Board) — назначение пинов.** Откройте
-`main/ad3s_types.hpp`, найдите блок `#elif defined(CONFIG_USER_ANY_BOARD)` и
-замените номера GPIO на свои. Значения по умолчанию рабочие — поменяйте те, что
-не совпадают с вашей разводкой. Подключение к микросхеме **5400ТР065А-022**:
+**Своя плата (Custom User Board) — назначение пинов.** Сначала в `menuconfig`
+выберите **Custom User Board**, затем откройте `main/ad3s_types.hpp`, найдите
+первый блок `#if defined(CONFIG_CUSTOM_USER_BOARD)` (помечен как `CUSTOM USER BOARD`)
+и замените номера GPIO на свои. Значения по умолчанию — рабочая разводка образца;
+поменяйте те, что не совпадают с вашей. Подключение к микросхеме **5400ТР065А-022**:
 
 | Константа в `ad3s_types.hpp` | Сигнал                       | Куда подключать                    |
 |------------------------------|------------------------------|------------------------------------|

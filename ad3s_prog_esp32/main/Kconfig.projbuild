@@ -4,24 +4,33 @@ menu "AD3S Board Configuration"
 
     choice VERSION_BOARD
         prompt "Version board"
-        default SKVT_VERIFY
+        default DEV_BOARD_065A022
         help
-            Select the board variant to match your hardware (pins are defined in main/ad3s_types.hpp).
+            Select the board variant to match your hardware (pin mappings are
+            defined in main/ad3s_types.hpp).
 
-        config SKVT_VERIFY
-            bool "SKVT Verify"
-        config INDUCTOSYN_VER2
-            bool "Inductosyn ver2"
-        config INDUCTIVE3VER
-            bool "Inductive3ver"
-        config USERDEMO_BOARD
-            bool "User Demo"
-        config USER_ANY_BOARD
-            bool "User Any Board (custom pins)"
+            - "Dev board for 065A-022" — the factory debug/development board for
+              the 5400TP065A-022 chip (default).
+            - "Custom User Board" — any other ESP32-S3 module wired to the chip.
+              Edit the pin mapping in the CONFIG_CUSTOM_USER_BOARD block of
+              main/ad3s_types.hpp to match your wiring before building.
+
+        config DEV_BOARD_065A022
+            bool "Dev board for 065A-022"
+        config CUSTOM_USER_BOARD
+            bool "Custom User Board"
             help
-                Generic ESP32-S3 board (any cheap devkit). Set the pin mapping in
-                main/ad3s_types.hpp (CONFIG_USER_ANY_BOARD block) to match your wiring
-                to the 5400TP065A-022 chip. See README.md for details.
+                Any ESP32-S3 module wired to the 5400TP065A-022 chip. The default
+                pin mapping is a working reference; replace it with your own in the
+                CONFIG_CUSTOM_USER_BOARD block of main/ad3s_types.hpp. See README.md.
+
+        # --- Hidden / legacy board variants (kept for reference, not offered to the user) ---
+        # config SKVT_VERIFY
+        #     bool "SKVT Verify"
+        # config INDUCTOSYN_VER2
+        #     bool "Inductosyn ver2"
+        # config USER_ANY_BOARD
+        #     bool "User Any Board (custom pins)"
     endchoice
 
 
