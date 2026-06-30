@@ -241,6 +241,10 @@ idf.py build
 - В VS Code: `F1` → **ESP-IDF: Build Project**.
 - При первой сборке скачаются внешние компоненты в `managed_components/`
   (TinyUSB, led_strip) — это нормально.
+- **TinyUSB CDC** (виртуальный COM-порт для связи с приложением) включается
+  автоматически через `sdkconfig.defaults` (`CONFIG_TINYUSB_CDC_ENABLED=y`) —
+  отдельно активировать его в menuconfig не нужно. Если сборка всё же падает с
+  ошибкой про TinyUSB CDC — выполните `idf.py fullclean` и пересоберите.
 - Готовый бинарник: `build/ad3s_prog_esp32.bin`.
 
 ### Прошивка контроллера
@@ -284,6 +288,7 @@ idf.py -p COM3 monitor
 | `idf.py` не найдена | Вы не в окружении ESP-IDF. Откройте «ESP-IDF 5.5.2 CMD» или терминал ESP-IDF в VS Code. |
 | `driver/pulse_cnt.h: No such file or directory` | Компонент `esp_driver_pcnt` уже в `main/CMakeLists.txt`. Выполните `idf.py fullclean`, затем `idf.py build`. |
 | После правки Kconfig/CMake не пересобирается | `idf.py fullclean && idf.py reconfigure && idf.py build`. |
+| Ошибка сборки: TinyUSB CDC не активирован (`CONFIG_TINYUSB_CDC_ENABLED`) | CDC нужен для виртуального COM-порта и включён в `sdkconfig.defaults` автоматически. Если ошибка есть — `idf.py fullclean && idf.py build`. Либо вручную: menuconfig → *Component config → TinyUSB Stack → Communication Device Class (CDC) → Enable TinyUSB CDC feature*. |
 | Постоянная перезагрузка / `panic` при старте | Обычно инициализация адресной ленты на неверном пине или конфликт пина с флешкой. Выберите режим GPIO и свободный пин. |
 | Чип не отвечает (workstation4ad3s не получает данных) | Проверьте разводку SPI, питание и уровни чипа, что `NRESET` отпущен, и что выбран правильный вариант платы. |
 | Слишком длинный путь / ошибки CMake | Перенесите проект ближе к корню диска, например `C:\projects\ad3s_prog_esp32`. |
