@@ -7,7 +7,7 @@
 интерфейс для чтения/записи регистров, просмотра графиков, прошивки OTP-памяти,
 запуска ассемблерных программ на внутренних RISC-процессорах чипа и других операций.
 
-Прошивка моста (ESP-IDF, C++): <https://ftp.dcsoyuz.ru/soft/ad3s_prog_esp32/>
+Прошивка моста (ESP-IDF, C++): <https://github.com/DCsoyuz/ad3s/tree/main/ad3s_prog_esp32>
 
 ---
 
@@ -127,7 +127,7 @@ java -version
 ### 1. Прошивка ESP32 моста
 
 Загрузите и прошейте ESP32-S3 прошивкой `ad3s_prog_esp32`:
-<https://ftp.dcsoyuz.ru/soft/ad3s_prog_esp32/>
+<https://github.com/DCsoyuz/ad3s/tree/main/ad3s_prog_esp32>
 Инструкция по сборке и прошивке — в README репозитория `ad3s_prog_esp32`.
 
 ### 2. Подключение микросхемы
@@ -363,6 +363,6 @@ README.md                        — этот файл
 ## Связанные ресурсы
 
 - **Прошивка ESP32 моста (ad3s_prog_esp32):**
-  <https://ftp.dcsoyuz.ru/soft/ad3s_prog_esp32/>
+  <https://github.com/DCsoyuz/ad3s/tree/main/ad3s_prog_esp32>
 - **Спецификация микросхемы 5400ТР065А-022:**
   <https://support.dcsoyuz.ru/docs/5400TP065A-022/ad3s-main>
