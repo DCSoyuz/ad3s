@@ -21,7 +21,7 @@
 
 ## С чего начать
 
-**Вариант 1 — готовое приложение (без сборки).** Скачайте JAR и скрипты запуска с FTP: <https://ftp.dcsoyuz.ru/soft/workstation4ad3s/> (требуется Java 17+). Прошивку моста (исходники) — на GitHub: <https://github.com/DCsoyuz/ad3s/tree/main/ad3s_prog_esp32>.
+**Вариант 1 — готовое приложение (без сборки).** Скачайте JAR и скрипты запуска с FTP: <https://ftp.dcsoyuz.ru/soft/workstation4ad3s/> (требуется Java 17+; JDK 17 для установки без интернета — в папке `jdk/` там же: <https://ftp.dcsoyuz.ru/soft/workstation4ad3s/jdk/>). Прошивку моста (исходники) — на GitHub: <https://github.com/DCsoyuz/ad3s/tree/main/ad3s_prog_esp32>.
 
 **Вариант 2 — собрать из исходников.** См. README соответствующего каталога: [`workstation4ad3s/`](workstation4ad3s/README.md) и [`ad3s_prog_esp32/`](ad3s_prog_esp32/README.md).
 

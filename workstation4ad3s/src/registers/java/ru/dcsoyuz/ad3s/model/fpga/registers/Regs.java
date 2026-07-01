@@ -155,7 +155,7 @@ public enum Regs implements IReg{
             RegValueType.VALUE15_0_UNSIGNED,"cc_tstreg", false,4, 0),
     CMP_lth("Максимальное допустимое различие результатов преобразования каналов 1 " +
             "и 2 для выставления флага Not_Equal в регистре Stat_main.",
-            RegValueType.VALUE15_4_UNSIGNED , "cc_cmplth",false, 5,1),
+            RegValueType.VALUE15_4_UNSIGNED , "cc_cmplth",false, 5,0),
 
     AFE_config ("Регистр настройки аналоговых блоков",
             RegValueType.VALUE_FIELDS , "cc_afeconfig", false,6),

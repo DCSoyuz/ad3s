@@ -108,7 +108,7 @@ public enum RegField  implements IRegField{
             "для ускорения достижения заданной частоты \n" +
             "0 – без начального напряжения \n" +
             "1 – вместе с начальным напряжением " ,
-            Regs.PLL_config, 7,1),
+            Regs.PLL_config, 7,0),
     PLL_N       ("Коэффициент умножения для получения внутренней тактовой " +
             "частоты. " +
             "FINT = 0,5 × fOSC × PLL_N/(PLL_Q+1) \n" +
@@ -788,7 +788,7 @@ public enum RegField  implements IRegField{
     BOTP_clkdel ("Делитель частоты, для функционирования BOTP  \n" +
             "Fclk_rom = FINT/(3 + BOTP_clkdel), \n" +
             "где Fclk_rom должен быть не более 10 МГц\n" +
-            "BOTP_clkdel - 4 битное безнаковое значение [0..15]  ", Regs.INIT_conf,3,0, FieldValueType.RANGE_UNSIGNED,4),
+            "BOTP_clkdel - 4 битное безнаковое значение [0..15]  ", Regs.INIT_conf,0,0, FieldValueType.RANGE_UNSIGNED,4),
 
     command  ("00 - запустить CPU до точки останова, если она активна\n" +
             "01 - остановить CPU как есть\n" +
