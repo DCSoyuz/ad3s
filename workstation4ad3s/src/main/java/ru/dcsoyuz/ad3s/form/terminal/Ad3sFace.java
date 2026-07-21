@@ -1288,12 +1288,7 @@ public class Ad3sFace extends JPanel implements IMemoryEventListener  {
         map.put(32, getTableValuesForWriteToIc(32,16));
         map.put(63, getTableValuesForWriteToIc(63,1));
         map.put(64, getTableValuesForWriteToIc(64,8));
-        return map;
-    }
-
-
-    public Map<Integer, List<Integer>> getTableValuesForWriteCtrlOTP(){
-        Map<Integer, List <Integer>> map = new HashMap<>();
+        // OTP control registers (previously written by the "Write ctrl OTP" button)
         map.put(80, getTableValuesForWriteToIc(80,3));
         map.put(84, getTableValuesForWriteToIc(84,3));
         if (Model.isFactoryMode()) {

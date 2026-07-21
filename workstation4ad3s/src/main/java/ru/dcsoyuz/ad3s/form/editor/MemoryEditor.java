@@ -75,8 +75,6 @@ public class MemoryEditor extends JPanel implements IMemoryEventListener, ILongP
     private JButton progBOTPdataButton, progUOTPdataButton, progFactoryDataButton;
     private JButton verifyBOTPdataButton;
 
-    private JButton writeCtrlOTPButton;
-
 
     JCheckBox leftButton_CPU1_en, leftButton_CPU2_en, leftButton_CONV1_en, leftButton_CONV2_en;
 
@@ -288,14 +286,6 @@ public class MemoryEditor extends JPanel implements IMemoryEventListener, ILongP
             }
         };
 
-        Action performWriteCtrlOTP = new AbstractAction() {
-            public void actionPerformed(ActionEvent e) {
-                Model.getMemoryModel().setReqValues(face.getTableValuesForWriteCtrlOTP());
-                Model.getMemoryModel().writeValues();
-            }
-        };
-        writeCtrlOTPButton = createButton(performWriteCtrlOTP, "Write ctrl OTP", "Store values for OTP registers", true);
-
         loadingIcButton = createButton(performLoadingIc, "Loading...", "Cyclic read from IC all firmware regs", false);
 
         add(loadValuesFromTxtButton, helper.nextRow().setGridWidth(2).get());
@@ -306,7 +296,6 @@ public class MemoryEditor extends JPanel implements IMemoryEventListener, ILongP
         add(readBaseRamIcButton, helper.nextRow().setGridWidth(2).get());
         add(writeIcButton, helper.rightColumn().rightColumn().setGridWidth(1).get());
         add(loadingIcButton,  helper.nextRow().setGridWidth(2).get());
-        add(writeCtrlOTPButton, helper.rightColumn().rightColumn().setGridWidth(1).get());
         JPanel ledPlaceholder = new JPanel();
         ledPlaceholder.setOpaque(false);
         add(ledPlaceholder, helper.nextRow().nextRow().setGridWidth(2).get());
