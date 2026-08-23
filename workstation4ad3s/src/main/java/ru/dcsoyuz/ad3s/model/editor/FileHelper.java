@@ -23,11 +23,15 @@ public class FileHelper {
 
 
 
-    public static void createOutputFile(ConfProp prop, String fileName, List<String> list, String ext){
+    /**
+     * Resolves the working directory for a path property: falls back to
+     * <jarDir>/user_generated_files when the property is unset or empty,
+     * then to the parent directory when the path is not a directory itself.
+     */
+    public static File resolveDir(ConfProp prop) {
         String propPath = WorkstationConfig.getProperty(prop);
         if (propPath == null || propPath.isEmpty()) {
-            File jarDir = getJarDirectory();
-            File genDir = new File(jarDir, "user_generated_files");
+            File genDir = new File(getJarDirectory(), "user_generated_files");
             if (!genDir.exists()) genDir.mkdirs();
             propPath = genDir.getAbsolutePath();
         }
@@ -35,6 +39,11 @@ public class FileHelper {
         if(!path.isDirectory()) {
             path = path.getParentFile();
         }
+        return path;
+    }
+
+    public static void createOutputFile(ConfProp prop, String fileName, List<String> list, String ext){
+        File path = resolveDir(prop);
         int indexPoint =fileName.indexOf(".");
         String name =fileName.substring(0, indexPoint);
 
@@ -47,16 +56,7 @@ public class FileHelper {
     }
 
     public static void deleteOutputFile(ConfProp prop, String fileName, String ext){
-        String propPath = WorkstationConfig.getProperty(prop);
-        if (propPath == null || propPath.isEmpty()) {
-            File genDir = new File(getJarDirectory(), "user_generated_files");
-            if (!genDir.exists()) genDir.mkdirs();
-            propPath = genDir.getAbsolutePath();
-        }
-        File path = new File(propPath);
-        if(!path.isDirectory()) {
-            path = path.getParentFile();
-        }
+        File path = resolveDir(prop);
         int indexPoint =fileName.indexOf(".");
         String name =fileName.substring(0, indexPoint);
 
@@ -77,16 +77,7 @@ public class FileHelper {
 
         if(strPath == null || strPath == "") {
             if (!filename.contains(File.separator)) {
-                String hexPath = WorkstationConfig.getProperty(ConfProp.FILE_PATH_HEX_CODES);
-                if (hexPath == null || hexPath.isEmpty()) {
-                    File genDir = new File(getJarDirectory(), "user_generated_files");
-                    if (!genDir.exists()) genDir.mkdirs();
-                    hexPath = genDir.getAbsolutePath();
-                }
-                File file = new File(hexPath);
-                if (!file.isDirectory()) {
-                    file = file.getParentFile();
-                }
+                File file = resolveDir(ConfProp.FILE_PATH_HEX_CODES);
                 path = Paths.get(file.getPath() + File.separator + filename).toFile();
             } else {
                 path = Paths.get(filename).toFile();
@@ -123,16 +114,7 @@ public class FileHelper {
 
 
     public static void createFile(ConfProp prop, String fileName, List<String> list){
-        String propPath = WorkstationConfig.getProperty(prop);
-        if (propPath == null || propPath.isEmpty()) {
-            File genDir = new File(getJarDirectory(), "user_generated_files");
-            if (!genDir.exists()) genDir.mkdirs();
-            propPath = genDir.getAbsolutePath();
-        }
-        File path = new File(propPath);
-        if(!path.isDirectory()) {
-            path = path.getParentFile();
-        }
+        File path = resolveDir(prop);
         Path outFile = Paths.get(path.getPath()+ File.separator  + fileName);
         try {
             Files.write(outFile, list, Charset.forName("UTF-8"));

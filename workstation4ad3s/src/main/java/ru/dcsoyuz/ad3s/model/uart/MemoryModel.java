@@ -896,7 +896,7 @@ public class MemoryModel {
             }
             if (hexData != null) {
                 List<PacketToIc> listForSending = createPackets(modeAttrFile, hexData);
-                logger.debug("Created " + listForSending.size() + " packets for writing to flash");
+                logger.info("Created " + listForSending.size() + " packets for writing to flash");
                 int     PGM_ctrl    = 0x08;
                 List<Integer> dataPacketPrev = new ArrayList<>();
                 dataPacketPrev.add(AllRegAddr.BOTP_ctrl.getAddress());
@@ -923,7 +923,7 @@ public class MemoryModel {
                 int totalCount = listForSending.size();
                 for (int idx = 0; idx < totalCount; idx++) {
                     if (signalStopProcessing) {
-                        logger.debug("BOTP programming stopped by user after " + writtenCount + " words");
+                        logger.info("BOTP programming stopped by user after " + writtenCount + " words");
                         break;
                     }
                     PacketToIc packet = listForSending.get(idx);
@@ -934,6 +934,9 @@ public class MemoryModel {
                         Thread action = Model.getUartModel().doExchangePacket(bytes);
                         action.join();
                         writtenCount++;
+                        if (writtenCount % 64 == 0) {
+                            logger.info("BOTP: written " + writtenCount + "/" + totalCount + " words");
+                        }
                     } catch (InterruptedException e) {
                         logger.error("Error", e);
                         sendPgmDisable();
@@ -957,7 +960,7 @@ public class MemoryModel {
                         if (response != null && response.length >= 11) {
                             int readValue = PacketHelper.getUnsignedWord16bitInt(response[8], response[9]);
                             if (readValue != expectedValue) {
-                                logger.debug(String.format(
+                                logger.error(String.format(
                                     "VERIFY FAILED at addr=%d: read=0x%04X expected=0x%04X. Programming stopped.",
                                     idx, readValue, expectedValue));
                                 sendPgmDisable();
@@ -965,7 +968,7 @@ public class MemoryModel {
                                 return;
                             }
                         } else {
-                            logger.debug("VERIFY FAILED at addr=" + idx + ": no valid response. Programming stopped.");
+                            logger.error("VERIFY FAILED at addr=" + idx + ": no valid response. Programming stopped.");
                             sendPgmDisable();
                             setProcessing(false);
                             return;
@@ -999,10 +1002,12 @@ public class MemoryModel {
                     logger.error("Error", e);
                 }
 
-
+                if (totalCount > 0 && writtenCount == totalCount) {
+                    logger.info("BOTP programmed: " + writtenCount + "/" + totalCount + " words, verify OK");
+                }
 
             } else {
-                logger.debug("Emptry data for write to flash");
+                logger.error("Empty data for write to flash");
             }
 
             setProcessing(false);
@@ -1102,9 +1107,9 @@ public class MemoryModel {
             }
 
             if (errorCount == 0) {
-                logger.debug("=== Verify BOTP PASSED: all " + totalCount + " words OK ===");
+                logger.info("=== Verify BOTP PASSED: all " + totalCount + " words OK ===");
             } else {
-                logger.debug("=== Verify BOTP FAILED: " + errorCount + "/" + totalCount + " words mismatch ===");
+                logger.info("=== Verify BOTP FAILED: " + errorCount + "/" + totalCount + " words mismatch ===");
             }
             setProcessing(false);
         }
@@ -1125,12 +1130,13 @@ public class MemoryModel {
                 action.join(1000);
                 Thread actionVpp1 = setVpp9vValue(true);
                 actionVpp1.join(1000);
-                sleep(1);
+                sleep(200);
                 Thread actionVpp2 = setVpp9vValue(false);
                 actionVpp2.join(1000);
                 reqValues.get(AllRegAddr.PLL_config.getAddress()).set( 2, reqValues.get(AllRegAddr.PLL_config.getAddress()).get(2) & 0xFFFD );
                 Thread action3 = new WriteValuesAction();
                 startAction(action3);
+                logger.info("UOTP programmed (PLL_config, INIT_conf)");
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
@@ -1167,6 +1173,7 @@ public class MemoryModel {
                 }
                 Thread action3 = new WriteValuesAction();
                 startAction(action3);
+                logger.info("Factory OTP programmed");
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }

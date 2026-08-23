@@ -523,9 +523,7 @@ public class MemoryEditor extends JPanel implements IMemoryEventListener, ILongP
     }
 
     private File getHexFile(String fileName) {
-        File path = new File(WorkstationConfig.getProperty(ConfProp.FILE_PATH_HEX_CODES));
-        if (!path.isDirectory()) path = path.getParentFile();
-        return new File(path, fileName);
+        return new File(FileHelper.resolveDir(ConfProp.FILE_PATH_HEX_CODES), fileName);
     }
 
     private List<Integer> readRegValuesFromHex(File file, int wordCount) {
