@@ -1044,7 +1044,7 @@ public class MemoryModel {
                 logger.error("Error", e);
             }
             if (hexData == null) {
-                logger.debug("No BOTP hex data found");
+                logger.error("Verify BOTP: rom_BOTP.hex data not found - press 'Create BOTP' first");
                 setProcessing(false);
                 return;
             }
@@ -1063,11 +1063,14 @@ public class MemoryModel {
 
             int totalCount = hexData.size();
             int errorCount = 0;
-            logger.debug("=== Verify BOTP: " + totalCount + " words ===");
+            int checkedCount = 0;
+            boolean incomplete = false;
+            logger.info("=== Verify BOTP: " + totalCount + " words ===");
 
             for (int i = 0; i < totalCount; i++) {
                 if (signalStopProcessing) {
-                    logger.debug("Verify BOTP stopped by user at word " + i);
+                    logger.info("Verify BOTP stopped by user at word " + i);
+                    incomplete = true;
                     break;
                 }
 
@@ -1083,15 +1086,24 @@ public class MemoryModel {
                     action.join();
 
                     byte[] response = Model.getUartModel().getResponse();
+                    if (response == null || response.length < 11) {
+                        logger.error("Verify BOTP: no valid response at addr=" + i + ". Read aborted.");
+                        incomplete = true;
+                        break;
+                    }
                     int readValue = PacketHelper.getUnsignedWord16bitInt(response[8], response[9]);
                     int expectedValue = Integer.parseInt(hexData.get(i), 16);
 
                     if (readValue != expectedValue) {
-                        logger.debug(String.format("MISMATCH addr=%d: read=0x%04X expected=0x%04X", i, readValue, expectedValue));
+                        if (errorCount < 10) {
+                            logger.warn(String.format("MISMATCH addr=%d: read=0x%04X expected=0x%04X", i, readValue, expectedValue));
+                        }
                         errorCount++;
                     }
+                    checkedCount++;
                 } catch (InterruptedException e) {
                     logger.error("Error", e);
+                    incomplete = true;
                     break;
                 }
             }
@@ -1106,7 +1118,10 @@ public class MemoryModel {
                 logger.error("Error", e);
             }
 
-            if (errorCount == 0) {
+            if (incomplete) {
+                logger.warn("=== Verify BOTP INCOMPLETE: checked " + checkedCount + "/" + totalCount
+                        + " words, mismatches: " + errorCount + " ===");
+            } else if (errorCount == 0) {
                 logger.info("=== Verify BOTP PASSED: all " + totalCount + " words OK ===");
             } else {
                 logger.info("=== Verify BOTP FAILED: " + errorCount + "/" + totalCount + " words mismatch ===");
