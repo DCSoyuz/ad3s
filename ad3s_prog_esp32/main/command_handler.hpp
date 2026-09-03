@@ -61,8 +61,10 @@ public:
        uart_resp_queue(u2)
     {      
 
-        gpio_set_direction((gpio_num_t)GPIO_NRESET, GPIO_MODE_OUTPUT); 
-        gpio_set_level((gpio_num_t)GPIO_NRESET, 0);
+        // NRESET уже отпущен в app_main (после удержания при включении);
+        // здесь пульсация сброса не нужна — микросекундный импульс может
+        // частично пройти по доменам тактирования
+        gpio_set_direction((gpio_num_t)GPIO_NRESET, GPIO_MODE_OUTPUT);
         event_group_dma_quad = xEventGroupCreate();
         event_group_dma_single = xEventGroupCreate();
         event_group_record = xEventGroupCreate();

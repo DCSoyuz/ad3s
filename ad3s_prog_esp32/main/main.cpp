@@ -23,6 +23,12 @@ QueueHandle_t spi0_queue = nullptr;
 
 extern "C" void app_main(void) {
 
+    // Сброс преобразователя: притягиваем к 0 как можно раньше — до окончания
+    // загрузки ESP32 пин находится в Hi-Z. Уровень выставляем ДО переключения
+    // пина в выход, чтобы не было глитча в «1».
+    gpio_set_level((gpio_num_t)idf::GPIO_NRESET, 0);
+    gpio_set_direction((gpio_num_t)idf::GPIO_NRESET, GPIO_MODE_OUTPUT);
+
     // Увеличиваем таймаут TWDT — SPI polling блокирует CPU1 через
     // внутренние блокировки ESP-IDF драйвера (spi_bus_lock, vTaskSuspendAll)
     esp_task_wdt_config_t twdt_cfg = {
@@ -58,8 +64,12 @@ extern "C" void app_main(void) {
 
     g_spi_maker = new idf::spi_maker(spi0_queue);
 
-    // Пин сброса преобразователя — в 1 до явной команды из Java
-    gpio_set_direction((gpio_num_t)idf::GPIO_NRESET, GPIO_MODE_OUTPUT);
+    // Держим сброс преобразователя в 0 до стабилизации питания после включения:
+    // ИОН/ФАПЧ настраиваются значениями из ПЗУ сразу после отпускания сброса
+    // (спека 8.1, этап 2), съём содержимого UOTP тоже идёт при NRESET=0.
+    // К этому моменту USB уже инициализирован — чип выходит из сброса
+    // раньше, чем пользователь успеет открыть COM-порт.
+    vTaskDelay(pdMS_TO_TICKS(1000));
     gpio_set_level((gpio_num_t)idf::GPIO_NRESET, 1);
 
     idf::CommandHandler command_handler_instance(master, usbcdc, *g_spi_maker, parsingPacket_queue, uart_resp_queue);
