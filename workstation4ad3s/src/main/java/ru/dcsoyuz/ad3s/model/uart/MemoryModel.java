@@ -1132,28 +1132,81 @@ public class MemoryModel {
 
 
     private class ProgUOTPtoICAction extends Thread {
-        final int WORD_COUNT_ROM = 16;
+        // биты UOTP_ctrl (адрес 82): 0=OVERRIDE_UVAL, 1=PROG_NEW_UVAL, 2=WATCH_ROM_UVAL
+        final int UOTP_OVERRIDE_UVAL = 0x0001;
+        final int UOTP_PROG_NEW_UVAL = 0x0002;
+        final int UOTP_WATCH_ROM_UVAL = 0x0004;
+
+        /**
+         * Запись одного слова в UOTP_ctrl (адрес 82).
+         */
+        private void writeUotpCtrl(int value) throws InterruptedException {
+            PacketToIc packet = new PacketToIc(McuCommand.WRITE, AllRegAddr.UOTP_ctrl.getAddress(), value);
+            Thread action = Model.getUartModel().doExchangePacket(PacketIcHelper.getBytesFromPacketToIc(packet));
+            action.join(1000);
+        }
 
         @Override
         public void run() {
             setProcessing(true);
             reqValues = new HashMap<>(initReqValues);
-            reqValues.get(AllRegAddr.PLL_config.getAddress()).set( 2, reqValues.get(AllRegAddr.PLL_config.getAddress()).get(2) |  0x0002 );
-            Thread action = new WriteValuesAction();
-            startAction(action);
+            List<Integer> values = reqValues.get(AllRegAddr.PLL_config.getAddress());
+            if (values == null || values.size() < 3) {
+                logger.error("UOTP: нет данных PLL_config/INIT_conf (сначала Create U22B, затем Prog UOTP из редактора ПЗУ)");
+                setProcessing(false);
+                return;
+            }
+            int pllExpected = values.get(0);
+            int initExpected = values.get(1);
+            int ctrlBase = values.get(2) & ~(UOTP_OVERRIDE_UVAL | UOTP_PROG_NEW_UVAL | UOTP_WATCH_ROM_UVAL);
             try {
-                action.join(1000);
+                // Спека 8.3_ROM п.1-2: запись PLL_config/INIT_conf + UOTP_ctrl c OVERRIDE=1.
+                // Чтение PLL_config/INIT_conf возвращает значения РЕГИСТРОВ только при OVERRIDE_UVAL=1.
+                values.set(2, ctrlBase | UOTP_OVERRIDE_UVAL);
+                PacketToIc packetWrite = PacketIcHelper.createPacketForWriteToIc(AllRegAddr.PLL_config.getAddress(), values);
+                Thread actionWrite = Model.getUartModel().doExchangePacket(PacketIcHelper.getBytesFromPacketToIc(packetWrite));
+                actionWrite.join(1000);
+
+                VerifyResult regResult = new VerifyResult();
+                verifyChunk(AllRegAddr.PLL_config.getAddress(), Arrays.asList(pllExpected, initExpected), McuCommand.READ, regResult);
+                if (regResult.totalMismatches > 0) {
+                    logger.error("UOTP ABORTED: регистры PLL_config/INIT_conf не записались (проверка при OVERRIDE_UVAL=1):");
+                    for (String err : regResult.errors) {
+                        logger.error("  " + err);
+                    }
+                    writeUotpCtrl(ctrlBase);
+                    setProcessing(false);
+                    return;
+                }
+
+                // Спека 8.3_ROM п.3: PROG_NEW_UVAL=1 (данные прожига = записанные регистры) + импульс VPP 9,8 В
+                writeUotpCtrl(ctrlBase | UOTP_OVERRIDE_UVAL | UOTP_PROG_NEW_UVAL);
                 Thread actionVpp1 = setVpp9vValue(true);
                 actionVpp1.join(1000);
                 sleep(200);
                 Thread actionVpp2 = setVpp9vValue(false);
                 actionVpp2.join(1000);
-                reqValues.get(AllRegAddr.PLL_config.getAddress()).set( 2, reqValues.get(AllRegAddr.PLL_config.getAddress()).get(2) & 0xFFFD );
-                Thread action3 = new WriteValuesAction();
-                startAction(action3);
-                logger.info("UOTP programmed (PLL_config, INIT_conf)");
+                sleep(50);
+
+                // Спека 8.3_ROM п.4-6: PROG=0; WATCH_ROM_UVAL=1 при OVERRIDE=0 — чтение PLL_config/
+                // INIT_conf возвращает фактическое содержимое ПЗУ (ad3s_nativerom: oD_OUT = OVERRIDE ? регистр : ROM)
+                writeUotpCtrl(ctrlBase | UOTP_WATCH_ROM_UVAL);
+                VerifyResult romResult = new VerifyResult();
+                verifyChunk(AllRegAddr.PLL_config.getAddress(), Arrays.asList(pllExpected, initExpected), McuCommand.READ, romResult);
+                if (romResult.totalMismatches == 0) {
+                    logger.info(String.format("UOTP programmed: ROM VERIFY PASSED (PLL_config=0x%04X, INIT_conf=0x%02X)",
+                            pllExpected, initExpected & 0xFF));
+                } else {
+                    logger.error("UOTP ROM VERIFY FAILED — содержимое ПЗУ не совпало с записанным (спека 8.3: повторить прожиг):");
+                    for (String err : romResult.errors) {
+                        logger.error("  " + err);
+                    }
+                }
+
+                // WATCH=0, OVERRIDE=0: чип работает от ПЗУ (data_latch удерживает содержимое ROM)
+                writeUotpCtrl(ctrlBase);
             } catch (InterruptedException e) {
-                throw new RuntimeException(e);
+                logger.error("UOTP programming interrupted", e);
             }
 
             setProcessing(false);

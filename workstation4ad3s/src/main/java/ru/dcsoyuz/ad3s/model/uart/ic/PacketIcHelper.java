@@ -109,7 +109,8 @@ public class PacketIcHelper {
         int size = PacketHelper.getUnsignedWord16bitInt(resp.get(6),resp.get(7));
         List<Integer> list = new ArrayList<>();
         for(int i=0; i< size; i++){
-            int value = PacketHelper.getUnsignedWord16bitInt(resp.get(8+2*i+1),resp.get(8+2*i));
+            // little-endian: младший байт первый (как в перегрузке byte[] и в прошивке ESP32)
+            int value = PacketHelper.getUnsignedWord16bitInt(resp.get(8+2*i),resp.get(8+2*i+1));
             list.add(value);
         }
         return list;

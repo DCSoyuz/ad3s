@@ -23,7 +23,6 @@
 namespace idf {
 
 static int fpgaMasterMode = 0;
-static int milandrMode = 0;
 static int sdiValueForDmaQuad = 0;
 static int vcValueForDmaQuad = 0;
 static int dmaQuadModeIsEna = 0;
@@ -381,9 +380,10 @@ public:
                             pBufResp[A_RESP_NUMB_H] = (uint8_t) ((size_resp_packet >> 8) & 0xFF);
                         break;
                         case COMMAND_SET_LED:
+                            // Только управление светодиодом. Ранее здесь же переключался
+                            // milandrMode (альтернативный формат адреса SPI) — включённая
+                            // галка LED ломала адресацию всех остальных команд.
                             gpio_set_level((gpio_num_t)LED_PIN, address);
-                            milandrMode = address;
-                            obj->spim.setMilandrMode(milandrMode);
                             size_resp_packet = 9;
                             pBufResp[A_RESP_NUMB_L] = (uint8_t) ( size_resp_packet & 0xFF);
                             pBufResp[A_RESP_NUMB_H] = (uint8_t) ((size_resp_packet >> 8) & 0xFF);

@@ -108,7 +108,9 @@ int spi_maker::writeRandomWordsToIC(uint16_t address, uint16_t size, uint8_t * r
             bh = (uint8_t)(0x80 | ((address) >> 6));
             bl = (uint8_t)(((address) << 2) & 0xFF);
         } else {
-            bh = (uint8_t)(0xC0 | ((address) >> 2));
+            // WRITE-операция: старшие биты кадра адреса 10 (0x80), как в writeWordsToIc.
+            // Было 0xC0 (код READ) — milandr-режим записи случайных слов не работал.
+            bh = (uint8_t)(0x80 | ((address) >> 2));
             bl = (uint8_t)(((address) << 6) & 0xFF);
         }
         uint8_t parity = get_even_parity(bh, bl);
