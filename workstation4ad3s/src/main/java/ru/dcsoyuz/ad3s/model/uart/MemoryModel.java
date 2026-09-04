@@ -2562,64 +2562,90 @@ public class MemoryModel {
 
     private class ReadOTPValuesAction extends Thread {
 
+        // UOTP_ctrl (адрес 82): bit3=MANUAL_NRST_PLL, bit2=WATCH_ROM_UVAL, bit1=PROG_NEW_UVAL, bit0=OVERRIDE_UVAL
+        private static final int UOTP_MANUAL_NRST_PLL = 0x0008;
+        private static final int UOTP_OVERRIDE_UVAL   = 0x0001;
+
+        // BOTP_ctrl (адрес 86): bit3=PGM, bit2=REN, bit1=NCEN, bit0=SLEEP
+        private static final int BOTP_CTRL_READ  = 0x0004; // REN=1, NCEN=0, SLEEP=0 — режим чтения
+        private static final int BOTP_CTRL_SLEEP = 0x0003; // REN=0, NCEN=1, SLEEP=1 — энергосбережение (дефолт)
+
+        // INIT_conf (адрес 81): bit4=OTP_init_on, биты [3:0]=BOTP_clkdel (должны сохраняться)
+        private static final int INIT_CONF_OTP_INIT_ON = 0x0010;
+
+        /**
+         * Спека 8.3_ROM: после инициализации по питанию/сбросу чтение BOTP даёт нулевые значения
+         * (zero_mode в ad3s_r512b). Разблокировка: OVERRIDE_UVAL=1 -> OTP_init_on=0 ->
+         * MANUAL_NRST_PLL 0 -> 1 (рестарт FSM без init, BOTP_out становится читаемым).
+         */
+        private void writeReg(int addr, int value) throws InterruptedException {
+            PacketToIc packet = new PacketToIc(McuCommand.WRITE, addr, value);
+            Thread action = Model.getUartModel().doExchangePacket(PacketIcHelper.getBytesFromPacketToIc(packet));
+            action.join(1000);
+        }
+
+        private int readReg(int addr) throws InterruptedException {
+            PacketToIc packet = new PacketToIc(McuCommand.READ, addr, 1, null);
+            Thread action = Model.getUartModel().doExchangePacket(PacketIcHelper.getBytesFromPacketToIc(packet));
+            action.join(1000);
+            byte[] response = Model.getUartModel().getResponse();
+            if (response == null || response.length < 10) {
+                throw new IllegalStateException("нет ответа на чтение регистра addr=" + addr);
+            }
+            return PacketHelper.getUnsignedWord16bitInt(response[8], response[9]);
+        }
 
         @Override
         public void run() {
+            try {
+                int uotpAddr = AllRegAddr.UOTP_ctrl.getAddress();
+                int initAddr = AllRegAddr.INIT_conf.getAddress();
 
+                // --- Подготовка BOTP к чтению (спека 8.3_ROM) ---
+                writeReg(uotpAddr, UOTP_OVERRIDE_UVAL | UOTP_MANUAL_NRST_PLL);   // OVERRIDE=1: INIT_conf берется из регистра
+                int initConfOriginal = readReg(initAddr);                        // теперь читается значение регистра
+                writeReg(initAddr, initConfOriginal & ~INIT_CONF_OTP_INIT_ON);   // init выключить, BOTP_clkdel сохранить
+                writeReg(uotpAddr, UOTP_OVERRIDE_UVAL);                          // MANUAL_NRST_PLL=0: внутренний сброс
+                sleep(50);
+                writeReg(uotpAddr, UOTP_OVERRIDE_UVAL | UOTP_MANUAL_NRST_PLL);   // сброс снят: FSM стартует без init, zero_mode=0
+                sleep(100);
 
-                int     REN_ctrl    = 0x04;
-                PacketToIc packetPrev = new PacketToIc(McuCommand.WRITE, AllRegAddr.BOTP_ctrl.getAddress(),  REN_ctrl );
-                try {
-                    Thread action = Model.getUartModel().doExchangePacket(PacketIcHelper.getBytesFromPacketToIc(packetPrev));
-                    action.join(1000);
-                } catch (InterruptedException e) {
-                    logger.error("Error", e);
-                    return;
-                }
+                // --- Чтение BOTP: REN=1, NCEN=0, SLEEP=0; на каждое слово BOTP_addr -> чтение BOTP_out ---
+                writeReg(AllRegAddr.BOTP_ctrl.getAddress(), BOTP_CTRL_READ);
                 List<Integer> resultReadList = new ArrayList<>();
-                for(int  i = 0; i< numReadValues; i++){
-                    PacketToIc packet =  new PacketToIc(McuCommand.WRITE, AllRegAddr.BOTP_addr.getAddress(),  readAddress+i );
-                    byte [] bytes  = PacketIcHelper.getBytesFromPacketToIc(packet);
-                    try {
-                        Thread action = Model.getUartModel().doExchangePacket(bytes);
-                        action.join(1000);
-                    } catch (InterruptedException e) {
-                        logger.error("Error", e);
-                        return;
-                    }
-                    PacketToIc packetRead = new PacketToIc(McuCommand.READ, AllRegAddr.BOTP_out.getAddress(), null );
-                    byte [] bytes2  = PacketIcHelper.getBytesFromPacketToIc(packetRead);
-                    try {
-                        Thread action = Model.getUartModel().doExchangePacket(bytes2);
-                        action.join(1000);
-                    } catch (InterruptedException e) {
-                        logger.error("Error", e);
-                        return;
-                    }
+                for (int i = 0; i < numReadValues; i++) {
+                    writeReg(AllRegAddr.BOTP_addr.getAddress(), readAddress + i);
+                    PacketToIc packetRead = new PacketToIc(McuCommand.READ, AllRegAddr.BOTP_out.getAddress(), 1, null);
+                    Thread action = Model.getUartModel().doExchangePacket(PacketIcHelper.getBytesFromPacketToIc(packetRead));
+                    action.join(1000);
                     byte[] response = Model.getUartModel().getResponse();
-                    resultReadList.add(PacketHelper.getUnsignedWord16bitInt(response[8],response[9]));
-
+                    if (response == null || response.length < 10) {
+                        logger.error("Watch OTP: нет ответа при чтении BOTP_out, адрес ячейки " + (readAddress + i));
+                        resultReadList.add(0);
+                        continue;
+                    }
+                    resultReadList.add(PacketHelper.getUnsignedWord16bitInt(response[8], response[9]));
                 }
-
                 dispatchResponse(resultReadList, readAddress, numReadValues, curRunnerView);
 
+                // --- BOTP обратно в энергосбережение ---
+                writeReg(AllRegAddr.BOTP_ctrl.getAddress(), BOTP_CTRL_SLEEP);
 
-
-                int     noPGM_ctrl  = 0x00;
-                List<Integer> dataPacketAfter = new ArrayList<>();
-                dataPacketAfter.add(AllRegAddr.BOTP_ctrl.getAddress());
-                dataPacketAfter.add(noPGM_ctrl);
-                PacketToIc packetAfter =  new PacketToIc(McuCommand.WRITE, 0,  0x0003 );
-                try {
-                    Thread action = Model.getUartModel().doExchangePacket(PacketIcHelper.getBytesFromPacketToIc(packetAfter));
-                    action.join(1000);
-                } catch (InterruptedException e) {
-                    logger.error("Error", e);
-                    return;
+                // --- Восстановление конфигурации микросхемы ---
+                writeReg(initAddr, initConfOriginal);                            // вернуть OTP_init_on (и clkdel) как было
+                if ((initConfOriginal & INIT_CONF_OTP_INIT_ON) != 0) {
+                    writeReg(uotpAddr, UOTP_OVERRIDE_UVAL | UOTP_MANUAL_NRST_PLL);
+                    writeReg(uotpAddr, UOTP_OVERRIDE_UVAL);                      // ре-инициализация из BOTP (как при включении питания)
+                    sleep(100);
                 }
-
-
-            setProcessing(false);
+                writeReg(uotpAddr, UOTP_MANUAL_NRST_PLL);                        // дефолт: только MANUAL_NRST_PLL
+            } catch (InterruptedException e) {
+                logger.error("Error", e);
+            } catch (IllegalStateException e) {
+                logger.error("Watch OTP: " + e.getMessage());
+            } finally {
+                setProcessing(false);
+            }
         }
     }
 
