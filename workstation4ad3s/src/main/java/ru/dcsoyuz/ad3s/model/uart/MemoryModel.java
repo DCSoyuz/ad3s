@@ -1171,8 +1171,8 @@ public class MemoryModel {
                 verifyChunk(AllRegAddr.PLL_config.getAddress(), Arrays.asList(pllExpected, initExpected), McuCommand.READ, regResult);
                 if (regResult.totalMismatches > 0) {
                     logger.error("UOTP ABORTED: регистры PLL_config/INIT_conf не записались (проверка при OVERRIDE_UVAL=1):");
-                    for (String err : regResult.errors) {
-                        logger.error("  " + err);
+                    for (VerifyResult.Mismatch m : regResult.mismatches) {
+                        logger.error("  " + m.describe());
                     }
                     writeUotpCtrl(ctrlBase);
                     setProcessing(false);
@@ -1198,8 +1198,8 @@ public class MemoryModel {
                             pllExpected, initExpected & 0xFF));
                 } else {
                     logger.error("UOTP ROM VERIFY FAILED — содержимое ПЗУ не совпало с записанным (спека 8.3: повторить прожиг):");
-                    for (String err : romResult.errors) {
-                        logger.error("  " + err);
+                    for (VerifyResult.Mismatch m : romResult.mismatches) {
+                        logger.error("  " + m.describe());
                     }
                 }
 
@@ -2205,24 +2205,61 @@ public class MemoryModel {
     private static class VerifyResult {
         int totalWords;
         int totalMismatches;
-        final List<String> errors = new ArrayList<>();
+        final List<Mismatch> mismatches = new ArrayList<>();
+
+        static class Mismatch {
+            final int address;
+            final String regName;
+            final int written;
+            final int read;
+
+            Mismatch(int address, String regName, int written, int read) {
+                this.address = address;
+                this.regName = regName;
+                this.written = written;
+                this.read = read;
+            }
+
+            String describe() {
+                return String.format("addr=%d (%s): written=0x%04X != read=0x%04X", address, regName, written, read);
+            }
+        }
 
         void addOk(int count) { totalWords += count; }
         void addError(int addr, int written, int read) {
             totalWords++;
             totalMismatches++;
-            errors.add(String.format("addr=%d: written=0x%04X != read=0x%04X", addr, written, read));
+            AllRegAddr regAddr = AllRegAddr.getAllRegAddr(addr);
+            mismatches.add(new Mismatch(addr, regAddr != null ? regAddr.name() : "?", written, read));
         }
 
         void printSummary() {
             if (totalMismatches == 0) {
                 System.out.printf("Successfully wrote %d values%n", totalWords);
-            } else {
-                System.out.printf("Failed write: %d of %d values mismatched%n", totalMismatches, totalWords);
-                for (String err : errors) {
-                    logger.debug("  " + err);
-                }
+                return;
             }
+            System.out.printf("Failed write: %d of %d values mismatched:%n", totalMismatches, totalWords);
+            System.out.printf("  %5s  %-14s  %-9s  %-9s%n", "addr", "register", "written", "read");
+            for (Mismatch m : mismatches) {
+                System.out.printf("  %5d  %-14s  0x%04X     0x%04X%n", m.address, m.regName, m.written, m.read);
+            }
+            showMismatchDialog();
+        }
+
+        private void showMismatchDialog() {
+            StringBuilder html = new StringBuilder();
+            html.append("<html><b style='color:red'>&#9888; Проверка записи: не записалось ")
+                .append(totalMismatches).append(" из ").append(totalWords).append(" регистров</b><br><br>")
+                .append("<table border='1' cellspacing='0' cellpadding='4'>")
+                .append("<tr><th>Адрес</th><th>Регистр</th><th>Записано</th><th>Прочитано</th></tr>");
+            for (Mismatch m : mismatches) {
+                html.append(String.format("<tr><td>%d</td><td>%s</td><td>0x%04X</td><td>0x%04X</td></tr>",
+                        m.address, m.regName, m.written, m.read));
+            }
+            html.append("</table><br>Подробный список — в консоли приложения.</html>");
+            SwingUtilities.invokeLater(() ->
+                JOptionPane.showMessageDialog(null, html.toString(),
+                    "Запись регистров: проверка не прошла", JOptionPane.WARNING_MESSAGE));
         }
     }
 
